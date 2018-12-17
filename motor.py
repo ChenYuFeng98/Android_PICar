@@ -31,7 +31,7 @@ def motor_init():
 def servo_init():
     global pwm_servo
     GPIO.setup(ServoPin, GPIO.OUT,initial=GPIO.LOW)
-    pwm_servo = GPIO.PWM(ServoPin, 50)
+    pwm_servo = GPIO.PWM(ServoPin, 100)
     pwm_servo.start(0)
     time.sleep(0.1)
 ##===============INIT==============
@@ -54,7 +54,7 @@ def back(L,R):
     pwm_ENB.ChangeDutyCycle(R)
    
 def ctrturn(angle):      
-    pwm_servo.ChangeDutyCycle(2.5 + 10 * (137+angle)/270)
+    pwm_servo.ChangeDutyCycle(5 + 20 * (93+angle)/270)
     time.sleep(0.25)
     pwm_servo.ChangeDutyCycle(0)
     #time.sleep(0.02)
@@ -95,15 +95,15 @@ def getc(num):
 def up(speed,Dspeed):     
     GPIO.output(IN1, GPIO.HIGH)
     GPIO.output(IN2, GPIO.LOW)   
-    #启动PWM设置占空比为100（0--100）
     pwm_ENA.ChangeDutyCycle(speed+Dspeed)  # left
     GPIO.output(IN3, GPIO.HIGH)
     GPIO.output(IN4, GPIO.LOW)   
     pwm_ENB.ChangeDutyCycle(speed-Dspeed)  # right       
     
 def turn(angle):     
-    pwm_servo.ChangeDutyCycle(2.5 + 10 * (137+angle)/270)
+    pwm_servo.ChangeDutyCycle(5 + 20 * (93+angle)/270)
     time.sleep(0.01)
+    print(95+angle)
      
 def stopmotor():
     GPIO.output(IN2, GPIO.LOW)
@@ -112,7 +112,7 @@ def stopmotor():
     GPIO.output(IN4, GPIO.LOW)
     GPIO.output(IN3, GPIO.LOW)   
     pwm_ENB.ChangeDutyCycle(0)
-    pwm_servo.ChangeDutyCycle(2.5 + 10 * 137/270)
+    pwm_servo.ChangeDutyCycle(5 + 20 * 93/270)
     time.sleep(0.2)
     pwm_servo.ChangeDutyCycle(0)
     
@@ -156,19 +156,16 @@ def tracking():
     global civ
     global ckv
     global cdv
-    start = time.process_time()
-    if(auto == 1):
+    
+    if(auto is 1):
         ret, frame2 = cap.read()
         frame1 = cv.resize(frame2, (320,240), interpolation=cv.INTER_AREA) 
-        #frame = frame1[30:180,70:250]
-        frame = frame1[85:145,60:260]#65..115
+        frame = frame1[90:170,60:260]#85..145
         hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV) 
         mask = cv.inRange(hsv, lower_black, upper_black)
         cv.line(mask,(0,0),(200,0),[0,0,0],1) 
-        cv.line(mask,(0,60),(200,60),[0,0,0],1) 
-
+        cv.line(mask,(0,80),(200,80),[0,0,0],1) 
         image,contours,hierarchy = cv.findContours(mask, 3, 1) 
-        #print(len(contours))
         if len(contours) > 0:
             cnt = contours[0]  
             M = cv.moments(cnt)
@@ -198,8 +195,8 @@ def tracking():
                     Ud = cd * (e[0]-e[1])
                     angle =  Up + Ui + Ud
              
-                    if (abs(angle) > 50):   
-                        angle = getc(angle) * 50
+                    if (abs(angle) > 53):   
+                        angle = getc(angle) * 53
                     turn(angle)
                 
                     speed = civ - ckv * abs(angle)
@@ -212,13 +209,12 @@ def tracking():
         else:
             endif()
     else:
-        stopmotor()         
+        stopmotor()
     #print(angle,speed,Dspeed)
-    #cv.imshow('mask', mask)   
-    #k = cv.waitKey(2) & 0xFF   
-    if(auto == 1):
-        timer = threading.Timer(0.01,tracking)
-        timer.start()
+        #cv.imshow('mask', mask)   
+        #k = cv.waitKey(1) & 0xFF   
+    if(auto is 1):
+        threading.Timer(0.0001,tracking).start()     
     else:
         stopmotor()
         

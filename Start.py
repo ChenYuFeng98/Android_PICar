@@ -11,6 +11,8 @@ global speedL
 global speedR
 speedL = 70
 speedR = 70
+global auto
+
 def getip():
     try:
         s = socket(AF_INET,SOCK_DGRAM)
@@ -32,7 +34,7 @@ tcpSerSock.listen(5)
 while True:
     #print ('Waiting for connection...') 
     (tcpCliSock,addr) = tcpSerSock.accept()
-    print ('connected from:',addr)
+    #print (addr)
     try:
         while True:
             data = ''
@@ -43,12 +45,11 @@ while True:
             if data == b'CTRL':               
                 stopmotor()
                 control()
-                global auto
                 auto = 0
             elif data == b'LEFT':
-                ctrturn(-40)
+                ctrturn(-30)
             elif data == b'RIGHT':
-                ctrturn(50)
+                ctrturn(40)
             elif data == b'RESET':
                 ctrturn(0)
             elif data == b'STOP':         
@@ -65,7 +66,6 @@ while True:
                 IV = strsplit[4]
                 KV = strsplit[5]
                 DV = strsplit[6]
-                global auto
                 auto = 1
                 track_init(P,I,D,IV,KV,DV)
             elif data[:1] == b'I':
