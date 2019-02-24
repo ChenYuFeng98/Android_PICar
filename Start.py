@@ -9,8 +9,8 @@ import sys
 
 global speedL
 global speedR
-speedL = 70
-speedR = 70
+speedL = 60
+speedR = 60
 global auto
 
 def getip():
@@ -46,18 +46,10 @@ while True:
                 stopmotor()
                 control()
                 auto = 0
-            elif data == b'LEFT':
-                ctrturn(-30)
-            elif data == b'RIGHT':
-                ctrturn(40)
-            elif data == b'RESET':
-                ctrturn(0)
-            elif data == b'STOP':         
-                stop()
-            elif data == b'UP':
-                toward(speedL,speedR)
-            elif data == b'DOWN':
-                back(speedL,speedR)  
+            elif data[:2] == b'Ag':
+                strsplit = str(data).split(":")
+                Ag = strsplit[1]
+                ctrl(Ag,speedL,speedR)
             elif data[:4] == b'AUTO':
                 strsplit = str(data).split(":")
                 P = strsplit[1]
@@ -68,21 +60,22 @@ while True:
                 DV = strsplit[6]
                 auto = 1
                 track_init(P,I,D,IV,KV,DV)
-            elif data[:1] == b'I':
-                speedR = int(data[-2:])
-            elif data[:1] == b'D':
-                speedR = int(data[-2:])
-            elif data[:2] == b'IV':
-                speedR = int(data[-2:])
-            elif data[:2] == b'DV':
-                speedR = int(data[-2:])
-            elif data[:2] == b'KV':
-                speedR = int(data[-2:])
             elif data[:2] == b'RV':
                 speedR = int(data[-2:])
             elif data[:2] == b'LV':
                 speedL = int(data[-2:])
-                
+            elif data == b'LEFT':
+                ctrturn(-35)
+            elif data == b'RIGHT':
+                ctrturn(45)
+            elif data == b'RESET':
+                ctrturn(0)
+            elif data == b'STOP':         
+                stop()
+            elif data == b'UP':
+                toward(speedL,speedR)
+            elif data == b'DOWN':
+                back(speedL,speedR)  
     except KeyboardInterrupt:
         tcpSerSock.close();
         pwm_servo.stop()

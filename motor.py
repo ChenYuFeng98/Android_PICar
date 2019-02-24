@@ -57,7 +57,7 @@ def ctrturn(angle):
     pwm_servo.ChangeDutyCycle(5 + 20 * (93+angle)/270)
     time.sleep(0.25)
     pwm_servo.ChangeDutyCycle(0)
-    #time.sleep(0.02)
+    time.sleep(0.02)
     
 def stop():
     GPIO.output(IN2, GPIO.LOW)
@@ -66,6 +66,19 @@ def stop():
     GPIO.output(IN4, GPIO.LOW)
     GPIO.output(IN3, GPIO.LOW)   
     pwm_ENB.ChangeDutyCycle(0)
+
+def ctrl(Ag,speedL,speedR):
+    if (int(Ag) == -1):
+        stop()
+        ctrturn(0)
+    elif (int(Ag) in range(1,179)):
+        turn(int(-(int(Ag)-90)/1.6))
+        toward(speedL ,speedR + getc((int(Ag)-90)) * 8)        
+    else:
+        turn(int((int(Ag)-270)/1.6))
+        back(speedL ,speedR - getc((int(Ag)-270)) * 8)
+        
+        
 ##===============CTRL==============
 
 ##===============AUTO==============
@@ -79,7 +92,7 @@ Ion = 0
 angle = 0
 Se = 0
 lower_black = np.array([0, 0, 0]) 
-upper_black = np.array([180, 255, 38]) 
+upper_black = np.array([180, 255, 78]) 
 
 import random
 global auto
@@ -95,15 +108,15 @@ def getc(num):
 def up(speed,Dspeed):     
     GPIO.output(IN1, GPIO.HIGH)
     GPIO.output(IN2, GPIO.LOW)   
-    pwm_ENA.ChangeDutyCycle(speed+Dspeed)  # left
+    pwm_ENA.ChangeDutyCycle(speed+Dspeed/2)  # left
     GPIO.output(IN3, GPIO.HIGH)
     GPIO.output(IN4, GPIO.LOW)   
-    pwm_ENB.ChangeDutyCycle(speed-Dspeed)  # right       
+    pwm_ENB.ChangeDutyCycle(speed-Dspeed/2)  # right       
     
 def turn(angle):     
     pwm_servo.ChangeDutyCycle(5 + 20 * (93+angle)/270)
-    time.sleep(0.01)
-    print(95+angle)
+    #time.sleep(0.01)
+    #print(95+angle)
      
 def stopmotor():
     GPIO.output(IN2, GPIO.LOW)
@@ -122,10 +135,6 @@ def endif():
     frameend = frame1[180:220,80:240]
     hsvend = cv.cvtColor(frameend, cv.COLOR_BGR2HSV)
     maskend = cv.inRange(hsvend, lower_black, upper_black)
-    '''cv.imshow('maskend', maskend)
-    k = cv.waitKey(2) & 0xFF'''
-    #if k == 27:
-    #    break
     image,contoursend,hierarchyend = cv.findContours(maskend, 3, 1)
     if len(contoursend) > 0:
         cntend = contoursend[0]   
@@ -136,7 +145,7 @@ def endif():
             angle = getc(cXend - 100) * 50#====not end
             turn(angle)
             speed = civ - ckv * abs(angle)
-            Dspeed = getc(angle) * 5    
+            Dspeed = getc(angle) * 8   
             up(speed,Dspeed)
         else:
             stopmotor()
@@ -145,26 +154,16 @@ def endif():
 
 
 def tracking():
-    global angle
-    global e
-    global Se
-    global Ion
-    global frame1
-    global cp
-    global ci
-    global cd
-    global civ
-    global ckv
-    global cdv
-    
     if(auto is 1):
+        global angle
+        global Se
         ret, frame2 = cap.read()
         frame1 = cv.resize(frame2, (320,240), interpolation=cv.INTER_AREA) 
-        frame = frame1[90:170,60:260]#85..145
+        frame = frame1[90:220,40:280]#85..145
         hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV) 
         mask = cv.inRange(hsv, lower_black, upper_black)
-        cv.line(mask,(0,0),(200,0),[0,0,0],1) 
-        cv.line(mask,(0,80),(200,80),[0,0,0],1) 
+        cv.line(mask,(0,0),(240,0),[0,0,0],1) 
+        cv.line(mask,(0,130),(240,130),[0,0,0],1) 
         image,contours,hierarchy = cv.findContours(mask, 3, 1) 
         if len(contours) > 0:
             cnt = contours[0]  
@@ -174,40 +173,42 @@ def tracking():
                 area = cv.contourArea(contours[0])+cv.arcLength(cnt,True)     
                 if (area > 100 and area < 9000):
                     e[1] = e[0]
-                    e[0] = cX - 100
-                                                          
-                    '''if (abs(e[0]) < 8): # dead zone
-                        Up = 0
+                    e[0] = cX - 100                                                        
+                    if (abs(e[0]) >  10):
+                        Up = cp * e[0] 
+                        ''' remove ui
+                        if (abs(e[0]) > 35): 
+                            Ion = 0
+                        else:
+                            Ion = 1'''
+                            
+                        if (abs(angle) < 45):
+                            Se += e[0] 
+                        Ui = ci * Se * Ion / 2 
+                        #Ui = 0 
+                        Ud = cd * (e[0]-e[1])
+                        angle =  Up + Ui + Ud
+                 
+                        if (abs(angle) > 65):   
+                            angle = getc(angle) * 65
+                        if (angle < 0):
+                            angle  = angle + 10
                     else:
-                        Up = cp * e[0]'''
-                    Up = cp * e[0] 
-                    ''' remove ui
-                    if (abs(e[0]) > 35): 
-                        Ion = 0
-                    else:
-                        Ion = 1
-                        
-                    if (abs(angle) < 40):
-                        Se += e[0]
-                        
-                    Ui = ci * Se * Ion / 2 '''
-                    Ui = 0 
-                    Ud = cd * (e[0]-e[1])
-                    angle =  Up + Ui + Ud
-             
-                    if (abs(angle) > 53):   
-                        angle = getc(angle) * 53
+                        angle = 0
                     turn(angle)
                 
                     speed = civ - ckv * abs(angle)
                     Dspeed = getc(angle) * cdv
                     up(speed,Dspeed)
                 else:
-                    endif()
+                    stopmotor()
+            #endif()
             else:
-                endif()  
+                stopmotor()
+            #endif()  
         else:
-            endif()
+            stopmotor()
+            #endif()
     else:
         stopmotor()
     #print(angle,speed,Dspeed)
